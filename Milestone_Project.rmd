@@ -1,0 +1,147 @@
+---
+title: "Milestone Project"
+author: "Bidalika Kumari"
+date: "17/08/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction to Milestone Project !
+
+#### The goal of this project is just to display that you've gotten used to working with the data and that you are on track to create your prediction algorithm. Please submit a report on R Pubs (http://rpubs.com/) that explains your exploratory analysis and your goals for the eventual app and algorithm. This document should be concise and explain only the major features of the data you have identified and briefly summarize your plans for creating the prediction algorithm and Shiny app in a way that would be understandable to a non-data scientist manager. You should make use of tables and plots to illustrate important summaries of the data set. 
+
+## The motivations of this project are:
+
+#### 1: Demonstrate that you've downloaded the data and have successfully loaded it in.
+#### 2: Create a basic report of summary statistics about the data sets.
+#### 3: Report any interesting findings that you amassed so far.
+#### 4: Get feedback on your plans for creating a prediction algorithm and Shiny app.
+
+## Loading the packages required
+```{r warning=FALSE}
+library(tidyverse)
+library(magrittr)
+library(SnowballC)
+library(stringi)
+library(tm)
+```
+### Now setting the directory to the desired path.
+### Display statistics of the three datasets.
+```{r }
+setwd("C:/Users/bidalika/Desktop/Milestone-Report/projectData/final/en_US")
+Blogs_data <- readLines("./en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE)
+News_data <- readLines("./en_US.news.txt", encoding = "UTF-8", skipNul = TRUE)
+Twitter_data <- readLines("./en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE)
+```
+```{r}
+file_stat<- function(text_file, lines) {
+    f_size <- file.info(text_file)[1]/1024^2
+    nchars <- lapply(lines, nchar)
+    maxchars <- which.max(nchars)
+    word_count <- sum(sapply(strsplit(lines, "\\s+"), length))
+    return(c(text_file, format(round(as.double(f_size), 2), nsmall=2), length(lines),maxchars, word_count))
+}
+
+News_stat<- file_stat("en_US.news.txt", News_data)
+
+Blogs_stat <- file_stat("en_US.blogs.txt", Blogs_data)
+
+Twitter_stat<- file_stat("en_US.twitter.txt", Twitter_data)
+
+test_summary <- c(News_stat, Blogs_stat, Twitter_stat)
+
+df <- data.frame(matrix(unlist(test_summary), nrow=3, byrow=T))
+    colnames(df) <- c("Text_file", "Size(MB)", "Line_Count", "Max Line Length", "Words_Count")
+    print(df)
+```
+## Exploratory Data Analysis of the data 
+```{r}
+make_Corpus<- function(test_file) {
+    gen_corp<- paste(test_file, collapse=" ")
+    gen_corp <- VectorSource(gen_corp)
+    gen_corp <- Corpus(gen_corp)
+}
+
+clean_corp <- function(corp_data) {
+
+    corp_data <- tm_map(corp_data, removeNumbers)
+    corp_data <- tm_map(corp_data, content_transformer(tolower))
+    corp_data <- tm_map(corp_data, removeWords, stopwords("english"))
+    corp_data <- tm_map(corp_data, removePunctuation)
+    corp_data <- tm_map(corp_data, stripWhitespace)
+    return (corp_data)
+}
+
+high_freq_words <- function (corp_data) {
+    term_sparse <- DocumentTermMatrix(corp_data)
+    term_matrix <- as.matrix(term_sparse)   ## convert our term-document-matrix into a normal matrix
+    freq_words <- colSums(term_matrix)
+    freq_words <- as.data.frame(sort(freq_words, decreasing=TRUE))
+    freq_words$word <- rownames(freq_words)
+    colnames(freq_words) <- c("Frequency","word")
+    return (freq_words)
+}
+```
+
+
+### Displaying 12 most freqently used word in en_US.news.txt.
+
+```{r}
+# Top 10 frequency words - US News
+    News_data1<-sample(News_data, size = 10000)
+    News_corpus <- make_Corpus(News_data1)
+    News_corpus <- clean_corp(News_corpus)
+    News_most_used_word <- high_freq_words(News_corpus)
+    News_most_used_word1<- News_most_used_word[1:12,]
+    
+ggplot(data=News_most_used_word1, aes(x=reorder(word,Frequency), y=Frequency, fill=factor(reorder(word,-Frequency))))+
+        geom_bar(stat="identity")+ 
+        xlab("Word") +labs(title = "Top 12 words: US News")+
+        theme_bw()+
+        coord_flip()+
+        theme(legend.title=element_blank())+
+        scale_fill_brewer(palette = "Paired")
+```
+
+
+### Displaying 12 most freqently used word in en_US.blogs.txt.
+
+```{r}
+Blogs_data1<-sample(Blogs_data, size = 10000)
+    Blogs_corpus <- make_Corpus(Blogs_data1)
+    Blogs_corpus <- clean_corp(Blogs_corpus)
+    Blogs_most_used_word <- high_freq_words(Blogs_corpus)
+    Blogs_most_used_word1<- Blogs_most_used_word[1:12,]
+    
+ggplot(data=Blogs_most_used_word1, aes(x=reorder(word,Frequency), y=Frequency, fill=factor(reorder(word,-Frequency))))+
+        geom_bar(stat="identity")+ 
+        xlab("Word") +labs(title = "Top 12 words: US Blogs")+
+        theme_bw()+
+        coord_flip()+
+        theme(legend.title=element_blank())+
+        scale_fill_brewer(palette = "Paired")
+```
+
+
+### Displaying 12 most freqently used word in en_US.twitter.txt.
+
+```{r}
+Twitter_data1<-sample(Twitter_data, size = 10000)
+    Twitter_corpus <- make_Corpus(Twitter_data1)
+    Twitter_corpus <- clean_corp(Twitter_corpus)
+    Twitter_most_used_word <- high_freq_words(Twitter_corpus)
+    Twitter_most_used_word1<- Twitter_most_used_word[1:12,]
+    
+ggplot(data=Twitter_most_used_word1, aes(x=reorder(word,Frequency), y=Frequency, fill=factor(reorder(word,-Frequency))))+
+        geom_bar(stat="identity")+ 
+        xlab("Word") +labs(title = "Top 12 words: US Twitter")+
+        theme_bw()+
+        coord_flip()+
+        theme(legend.title=element_blank())+
+        scale_fill_brewer(palette = "Paired")
+```
+
+#### I am planing of making a application using shinyapp that will help people to type faster as they will get the predicted words after the word they type, So I request you to give a review on my work and my further plan .
